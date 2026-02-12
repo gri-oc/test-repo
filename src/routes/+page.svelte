@@ -27,7 +27,7 @@
 	}
 
 	:global(::selection) {
-		background: #4ade80;
-		color: #0a0a0a;
+		background: var(--sel-bg, #4ade80);
+		color: var(--sel-fg, #0a0a0a);
 	}
 </style>

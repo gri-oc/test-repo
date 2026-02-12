@@ -58,6 +58,8 @@
 	$: activeTheme = themes[currentThemeName];
 	$: if (typeof document !== 'undefined') {
 		document.body.style.setProperty('--page-bg', activeTheme.background);
+		document.body.style.setProperty('--sel-bg', activeTheme.prompt);
+		document.body.style.setProperty('--sel-fg', activeTheme.background);
 		localStorage.setItem('lobb-theme', currentThemeName);
 	}
 
