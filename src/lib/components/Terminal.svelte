@@ -85,12 +85,15 @@ or is there?
 		scrollbarHover: '#555',
 	};
 
-	const greeting = `LOBB OS v0.1.0
-═══════════════════════════════
-system ready. 🐸
-
-commands: whoami · cat about.txt · cat skills.txt · cat history.txt · source · help
-or just explore. type 'ls' to start.`;
+	const welcomeMessage = [
+		'LOBB OS v0.1.0',
+		'═══════════════════════════════',
+		'system ready. 🐸',
+		'',
+		'commands: whoami · cat about.txt · cat skills.txt · cat history.txt · source · help',
+		'or just explore. type \'ls\' to start.',
+		'',
+	];
 </script>
 
 <div class="terminal-wrapper">
@@ -98,9 +101,9 @@ or just explore. type 'ls' to start.`;
 		{structure}
 		{commands}
 		{theme}
-		{greeting}
+		{welcomeMessage}
 		user="visitor"
-		host="lobb"
+		machine="lobb"
 		style="height: 100vh; height: 100dvh; font-size: 1.5rem; font-family: 'IBM Plex Mono', monospace; font-weight: 500; border: none; border-radius: 0;"
 	/>
 </div>
