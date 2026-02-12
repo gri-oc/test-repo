@@ -101,7 +101,7 @@ or just explore. type 'ls' to start.`;
 		{greeting}
 		user="visitor"
 		host="lobb"
-		style="height: 100vh; height: 100dvh; font-size: 1.1rem; font-family: 'JetBrains Mono', monospace;"
+		style="height: 100vh; height: 100dvh; font-size: 1.25rem; font-family: 'JetBrains Mono', monospace; font-weight: 500; border: none; border-radius: 0;"
 	/>
 </div>
 
