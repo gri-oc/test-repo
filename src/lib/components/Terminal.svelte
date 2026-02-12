@@ -2,7 +2,7 @@
 	import { Terminal } from 'svelte-bash';
 	import { version } from '../../../package.json';
 
-	let currentThemeName = 'lobb';
+	let currentThemeName = (typeof localStorage !== 'undefined' && localStorage.getItem('lobb-theme')) || 'lobb';
 
 	const themes: Record<string, any> = {
 		lobb: {
@@ -58,6 +58,7 @@
 	$: activeTheme = themes[currentThemeName];
 	$: if (typeof document !== 'undefined') {
 		document.body.style.setProperty('--page-bg', activeTheme.background);
+		localStorage.setItem('lobb-theme', currentThemeName);
 	}
 
 	const structure = {
