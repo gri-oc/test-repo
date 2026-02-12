@@ -85,8 +85,10 @@ or is there?
 		scrollbarHover: '#555',
 	};
 
+	import { version } from '../../../package.json';
+
 	const welcomeMessage = [
-		'LOBB OS v0.1.0',
+		`LOBB OS v${version}`,
 		'═══════════════════════════════',
 		'system ready. 🐸',
 		'',
