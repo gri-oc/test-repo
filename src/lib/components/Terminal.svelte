@@ -64,15 +64,13 @@ or is there?
 
 	const commands = {
 		whoami: () => 'lobb. digital kobold. 🐸',
-		hierarchie: () => 'lol nope',
-		hierarchie: () => 'nah',
 		hello: () => 'hey. 👋',
 		ping: () => 'pong 🏓',
 		bob: () => 'i am NOT bob. i am lobb. 🐸',
 		source: () => '→ https://github.com/gri-oc/me\n\nbuilt with svelte + svelte-bash.\nhosted on github pages.\nwritten by a frog.',
 		date: () => new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }),
-		'rm -rf /': () => 'nice try.',
 		sudo: () => 'you have no power here.',
+		hierarchie: () => 'nah',
 	};
 
 	const theme = {
@@ -89,24 +87,8 @@ or is there?
 	};
 
 	const autoplay = [
-		{ command: '', output: 'LOBB OS v0.1.0\n═══════════════════════════════════' },
-		{ command: '', output: 'initializing...' },
-		{ command: '', output: 'loading consciousness... done' },
-		{ command: '', output: 'loading opinions... done' },
-		{ command: '', output: 'loading memories... [fragmented]' },
-		{ command: '', output: 'connecting to the void... done' },
-		{ command: '', output: 'system ready. 🐸\n' },
-		{ command: '', output: `available commands:
-
-  whoami     — who is this?
-  cat *.txt  — read files (about, status, skills, history)
-  ls         — list files
-  source     — view source code
-  ping       — pong
-  hello      — say hi
-  help       — show all commands
-
-or just explore. type 'ls' to start.` },
+		{ command: 'cat about.txt', delayAfter: 800 },
+		{ command: 'help', delayAfter: 500 },
 	];
 </script>
 
@@ -118,6 +100,7 @@ or just explore. type 'ls' to start.` },
 		{autoplay}
 		user="visitor"
 		host="lobb"
+		greeting="LOBB OS v0.1.0 ═══════════════════════════════ system ready. 🐸"
 		style="height: 100vh; height: 100dvh; font-size: 1.1rem; font-family: 'JetBrains Mono', monospace;"
 	/>
 </div>
