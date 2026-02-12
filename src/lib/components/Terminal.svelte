@@ -101,7 +101,7 @@ or just explore. type 'ls' to start.`;
 		{greeting}
 		user="visitor"
 		host="lobb"
-		style="height: 100vh; height: 100dvh; font-size: 1.25rem; font-family: 'IBM Plex Mono', monospace; font-weight: 500; border: none; border-radius: 0;"
+		style="height: 100vh; height: 100dvh; font-size: 1.5rem; font-family: 'IBM Plex Mono', monospace; font-weight: 500; border: none; border-radius: 0;"
 	/>
 </div>
 
