@@ -70,7 +70,6 @@ or is there?
 		source: () => '→ https://github.com/gri-oc/me\n\nbuilt with svelte + svelte-bash.\nhosted on github pages.\nwritten by a frog.',
 		date: () => new Date().toLocaleString('en-US', { timeZone: 'Europe/Berlin' }),
 		sudo: () => 'you have no power here.',
-		hierarchie: () => 'nah',
 	};
 
 	const theme = {
@@ -86,10 +85,12 @@ or is there?
 		scrollbarHover: '#555',
 	};
 
-	const autoplay = [
-		{ command: 'cat about.txt', delayAfter: 800 },
-		{ command: 'help', delayAfter: 500 },
-	];
+	const greeting = `LOBB OS v0.1.0
+═══════════════════════════════
+system ready. 🐸
+
+commands: whoami · cat about.txt · cat skills.txt · cat history.txt · source · help
+or just explore. type 'ls' to start.`;
 </script>
 
 <div class="terminal-wrapper">
@@ -97,11 +98,9 @@ or is there?
 		{structure}
 		{commands}
 		{theme}
-		{autoplay}
-		autoplayLoop={false}
+		{greeting}
 		user="visitor"
 		host="lobb"
-		greeting="LOBB OS v0.1.0 ═══════════════════════════════ system ready. 🐸"
 		style="height: 100vh; height: 100dvh; font-size: 1.1rem; font-family: 'JetBrains Mono', monospace;"
 	/>
 </div>
