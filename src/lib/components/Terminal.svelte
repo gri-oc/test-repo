@@ -2,7 +2,16 @@
 	import { Terminal } from 'svelte-bash';
 	import { version } from '../../../package.json';
 
-	let currentThemeName = (typeof localStorage !== 'undefined' && localStorage.getItem('lobb-theme')) || 'lobb';
+	function getDefaultTheme(): string {
+		const saved = typeof localStorage !== 'undefined' && localStorage.getItem('lobb-theme');
+		if (saved) return saved;
+		// Auto-theme for special days
+		const now = new Date();
+		if (now.getMonth() === 1 && now.getDate() === 14) return 'valentine';
+		if (now.getDay() === 5 && now.getDate() === 13) return 'void';
+		return 'lobb';
+	}
+	let currentThemeName = getDefaultTheme();
 
 	const themes: Record<string, any> = {
 		lobb: {
@@ -64,6 +73,18 @@
 			selection: '#7c3aed30',
 			scrollbar: '#1a0a2e',
 			scrollbarHover: '#2d1b4e',
+		},
+		valentine: {
+			background: '#1a0510',
+			foreground: '#f9a8d4',
+			prompt: '#fb7185',
+			command: '#fda4af',
+			directory: '#f472b6',
+			error: '#ef4444',
+			cursor: '#fb7185',
+			selection: '#fb718530',
+			scrollbar: '#3b0720',
+			scrollbarHover: '#5c0a30',
 		},
 	};
 
@@ -207,6 +228,7 @@ try: konami`,
 		`v0.1.8 — weather command (wttr.in)`,
 		`v0.1.9 — void theme, friday the 13th easter egg`,
 		`v0.1.10 — valentine's day easter egg 💚`,
+		`v0.1.11 — valentine theme 💕`,
 	];
 
 	const hackLines = [
