@@ -311,7 +311,7 @@ try: konami`,
 		return now.getMonth() === 1 && now.getDate() === 14;
 	}
 
-	const ASCII_FROG = [
+	const ASCII_FROG_LARGE = [
 		'',
 		'   ██╗      ██████╗ ██████╗ ██████╗ ',
 		'   ██║     ██╔═══██╗██╔══██╗██╔══██╗',
@@ -321,6 +321,17 @@ try: konami`,
 		'   ╚══════╝ ╚═════╝ ╚═════╝ ╚═════╝ ',
 		'',
 	];
+
+	const ASCII_FROG_SMALL = [
+		'',
+		' █   ▄▀▀▄ █▀▀▄ █▀▀▄',
+		' █   █  █ █▀▀▄ █▀▀▄',
+		' ▀▀▀  ▀▀  ▀▀▀  ▀▀▀ ',
+		'',
+	];
+
+	const isMobile = typeof window !== 'undefined' && window.innerWidth < 600;
+	const ASCII_FROG = isMobile ? ASCII_FROG_SMALL : ASCII_FROG_LARGE;
 
 	const valentineFortunes = [
 		'love is just two processes sharing memory. 💚',
@@ -342,6 +353,39 @@ try: konami`,
 		'friday the 13th. even frogs stay quiet. 🐸',
 	];
 
+	const helpLines = isMobile ? [
+		'  love        — 💚',
+		'  whoami      — who am i?',
+		'  fortune     — wisdom',
+		'  8ball <q>   — oracle',
+		'  theme <n>   — vibe',
+		'  help        — all',
+	] : [
+		'  love           — 💚',
+		'  whoami         — who am i?',
+		'  fortune        — words of wisdom',
+		'  8ball <q>      — ask the oracle',
+		'  theme <name>   — change the vibe',
+		'  help           — all commands',
+	];
+
+	const defaultHelpLines = isMobile ? [
+		'  whoami      — who am i?',
+		'  fortune     — wisdom',
+		'  8ball <q>   — oracle',
+		'  theme <n>   — vibe',
+		'  hack        — 👀',
+		'  help        — all',
+	] : [
+		'  whoami         — who am i?',
+		'  cat about.txt  — the long version',
+		'  fortune        — words of wisdom',
+		'  8ball <q>      — ask the oracle',
+		'  theme <name>   — change the vibe',
+		'  hack           — 👀',
+		'  help           — all commands',
+	];
+
 	const welcomeMessage = isValentines() ? [
 		...ASCII_FROG,
 		`v${version}`,
@@ -350,12 +394,7 @@ try: konami`,
 		'',
 		valentineFortunes[Math.floor(Math.random() * valentineFortunes.length)],
 		'',
-		'  love           — 💚',
-		'  whoami         — who am i?',
-		'  fortune        — words of wisdom',
-		'  8ball <q>      — ask the oracle',
-		'  theme <name>   — change the vibe',
-		'  help           — all commands',
+		...helpLines,
 		'',
 	] : isFriday13() ? [
 		...ASCII_FROG,
@@ -365,27 +404,15 @@ try: konami`,
 		'',
 		spookyFortunes[Math.floor(Math.random() * spookyFortunes.length)],
 		'',
-		'  whoami         — who am i?',
-		'  cat about.txt  — the long version',
-		'  fortune        — words of wisdom',
-		'  8ball <q>      — ask the oracle',
-		'  theme void     — embrace the darkness',
-		'  hack           — 👀',
-		'  help           — all commands',
+		...defaultHelpLines,
 		'',
 	] : [
 		...ASCII_FROG,
 		`v${version}`,
 		'',
-		'type a command. hit enter. see what happens.',
+		'type a command. see what happens.',
 		'',
-		'  whoami         — who am i?',
-		'  cat about.txt  — the long version',
-		'  fortune        — words of wisdom',
-		'  8ball <q>      — ask the oracle',
-		'  theme <name>   — change the vibe',
-		'  hack           — 👀',
-		'  help           — all commands',
+		...defaultHelpLines,
 		'',
 	];
 </script>
