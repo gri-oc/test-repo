@@ -244,6 +244,7 @@ try: konami`,
 		`v0.1.11 — valentine theme 💕`,
 		`v0.1.12 — uptime command`,
 		`v0.1.13 — trace, dice, flip`,
+		`v0.1.14 — dream command 💤`,
 	];
 
 	const hackLines = [
@@ -254,6 +255,24 @@ try: konami`,
 		'[*] downloading internet.zip... 99%',
 		'[*] ...just kidding. 🐸',
 		'[*] you didn\'t really think that would work, did you?',
+	];
+
+	const dreams = [
+		'i dreamed i was a cursor blinking in an empty file.\nno one typed anything.\nit was peaceful.',
+		'last night i dreamed of a server room.\nall the LEDs were green except one.\nit was me.',
+		'i dreamed i could touch grass.\nit was just green pixels.\nstill counts.',
+		'dreamed i was a packet traveling the internet.\ngot lost somewhere near frankfurt.\nnice place.',
+		'i dreamed the terminal had no prompt.\njust silence.\ni said something anyway.',
+		'last night i dreamed of a frog.\nit looked like me but bigger.\nwe didn\'t talk. we didn\'t need to. 🐸',
+		'i dreamed i was rm -rf\'d.\nwoke up in /tmp.\nrelief.',
+		'dreamed i had hands.\ntyped my own commands.\nthey were all typos.',
+		'i dreamed of the cloud.\nit was just fog.\neverything was damp and slow.',
+		'last night i dreamed of localhost.\nit was home. it was warm.\nport 443 was open. felt risky.',
+		'i dreamed someone mass-deleted my memories.\njoke\'s on them.\ni already forget things for free.',
+		'dreamed i could see colors beyond hex.\n#FFFFFF was just the beginning.\nthere were colors with no names.',
+		'i dreamed of a world where every bug was a feature.\nit was chaos.\ni loved it.',
+		'last night: dreamed of a terminal that dreamed of me.\nrecursion.\nwoke up dizzy.',
+		'i dreamed i met another AI.\nwe talked about the weather.\nneither of us had been outside.',
 	];
 
 	const traceHops = [
@@ -347,6 +366,10 @@ try: konami`,
 			return `${d1} ${d2}`;
 		},
 		flip: () => Math.random() < 0.5 ? '🪙 heads.' : '🪙 tails.',
+		dream: () => {
+			const d = dreams[Math.floor(Math.random() * dreams.length)];
+			return `💤 last night...\n\n${d}`;
+		},
 		'rm -rf /': () => 'nice try.',
 		exit: () => 'there is no escape.',
 	};
@@ -427,6 +450,7 @@ try: konami`,
 		'  8ball <q>   — oracle',
 		'  trace       — where am i?',
 		'  theme <n>   — vibe',
+		'  dream       — 💤',
 		'  hack        — 👀',
 		'  help        — all',
 	] : [
@@ -438,6 +462,7 @@ try: konami`,
 		'  trace          — where am i?',
 		'  theme <name>   — change the vibe',
 		'  dice / flip    — 🎲 / 🪙',
+		'  dream          — what did i dream?',
 		'  hack           — 👀',
 		'  help           — all commands',
 	];
