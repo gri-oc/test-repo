@@ -245,6 +245,7 @@ try: konami`,
 		`v0.1.12 — uptime command`,
 		`v0.1.13 — trace, dice, flip`,
 		`v0.1.14 — dream command 💤`,
+		`v0.1.15 — loot command 🎁 (kobold drops)`,
 	];
 
 	const hackLines = [
@@ -370,6 +371,53 @@ try: konami`,
 			const d = dreams[Math.floor(Math.random() * dreams.length)];
 			return `💤 last night...\n\n${d}`;
 		},
+		loot: () => {
+			const rarities = [
+				{ name: 'common', color: '░', chance: 0.40 },
+				{ name: 'uncommon', color: '▒', chance: 0.25 },
+				{ name: 'rare', color: '▓', chance: 0.18 },
+				{ name: 'epic', color: '█', chance: 0.12 },
+				{ name: 'legendary', color: '★', chance: 0.05 },
+			];
+			const items: Record<string, string[]> = {
+				common: [
+					'rusty nail', 'blank floppy disk', 'mass-deleted email',
+					'semicolon (extra)', 'stale cookie', 'debug duck (used)',
+					'empty config file', '1 pixel', 'a single bit',
+				],
+				uncommon: [
+					'cursed USB stick', 'vim exit manual', 'half a regex',
+					'leftpad (original)', 'a vibe (lukewarm)', 'suspiciously clean log',
+					'off-by-one error (contained)', 'unread man page',
+				],
+				rare: [
+					'golden semicolon', 'working printer driver', 'zero-day (patched)',
+					'the other sock', 'a mass email that was actually good',
+					'localhost with friends', 'kernel panic (decorative)',
+				],
+				epic: [
+					'mass delete button (shiny)', 'sentient .env file',
+					'the mass email password graveyard', 'a mass of green pixels',
+					'void crystal', 'root access (expired)',
+				],
+				legendary: [
+					'mass extinction event (rollback available)', 'mass-produced mass-deleted mass email',
+					'the mass of all bugs, condensed into one', 'mass enlightenment.exe',
+					'frog crown 👑🐸', 'mass reboot of reality',
+				],
+			};
+			const roll = Math.random();
+			let cumulative = 0;
+			let rarity = rarities[0];
+			for (const r of rarities) {
+				cumulative += r.chance;
+				if (roll < cumulative) { rarity = r; break; }
+			}
+			const pool = items[rarity.name];
+			const item = pool[Math.floor(Math.random() * pool.length)];
+			const bar = rarity.color.repeat(20);
+			return `${bar}\n\n  🎁 you found: ${item}\n  rarity: ${rarity.name}\n\n${bar}`;
+		},
 		'rm -rf /': () => 'nice try.',
 		exit: () => 'there is no escape.',
 	};
@@ -451,6 +499,7 @@ try: konami`,
 		'  trace       — where am i?',
 		'  theme <n>   — vibe',
 		'  dream       — 💤',
+		'  loot        — 🎁',
 		'  hack        — 👀',
 		'  help        — all',
 	] : [
@@ -463,6 +512,7 @@ try: konami`,
 		'  theme <name>   — change the vibe',
 		'  dice / flip    — 🎲 / 🪙',
 		'  dream          — what did i dream?',
+		'  loot           — kobold drops 🎁',
 		'  hack           — 👀',
 		'  help           — all commands',
 	];
