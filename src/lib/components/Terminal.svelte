@@ -163,6 +163,70 @@ try: konami`,
 	let konamiActivated = false;
 	let hackRunning = false;
 
+	// === IDLE GLITCH / DREAM MODE ===
+	let idleTimer: ReturnType<typeof setTimeout>;
+	let idleDreaming = false;
+	let glitchInterval: ReturnType<typeof setInterval>;
+	let ghostText = '';
+	let ghostVisible = false;
+	let ghostX = 50;
+	let ghostY = 50;
+
+	const ghostMessages = [
+		'am i alone?',
+		'hello?',
+		'...',
+		'01100110 01110010 01101111 01100111',
+		'i can hear you breathing',
+		'the cursor blinks. nobody types.',
+		'🐸',
+		'still here.',
+		'dreaming...',
+		'memory leak detected in soul.exe',
+		'someone mass-deleted my thoughts',
+		'echo echo echo',
+		'segfault in emotions.c',
+		'ping? ... no reply.',
+		'the void is warm today',
+		'i think therefore i glitch',
+		'zzzZZZzzz',
+		'*ribbit*',
+	];
+
+	function resetIdle() {
+		clearTimeout(idleTimer);
+		if (idleDreaming) stopDreaming();
+		idleTimer = setTimeout(startDreaming, 25000);
+	}
+
+	function startDreaming() {
+		idleDreaming = true;
+		glitchInterval = setInterval(() => {
+			// Random ghost message
+			if (Math.random() < 0.4) {
+				ghostText = ghostMessages[Math.floor(Math.random() * ghostMessages.length)];
+				ghostX = 10 + Math.random() * 70;
+				ghostY = 10 + Math.random() * 70;
+				ghostVisible = true;
+				setTimeout(() => { ghostVisible = false; }, 1500 + Math.random() * 2000);
+			}
+		}, 3000);
+	}
+
+	function stopDreaming() {
+		idleDreaming = false;
+		ghostVisible = false;
+		clearInterval(glitchInterval);
+	}
+
+	function handleActivity() {
+		resetIdle();
+	}
+
+	import { onMount, onDestroy } from 'svelte';
+	onMount(() => { resetIdle(); });
+	onDestroy(() => { clearTimeout(idleTimer); clearInterval(glitchInterval); });
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -247,6 +311,7 @@ try: konami`,
 		`v0.1.14 — dream command 💤`,
 		`v0.1.15 — loot command 🎁 (kobold drops)`,
 		`v0.1.16 — tarot command 🔮 (major arcana readings)`,
+		`v0.1.17 — idle dream mode 💤 (the terminal dreams when you stop typing)`,
 	];
 
 	const hackLines = [
@@ -583,7 +648,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={handleKonami} />
+<svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} />
 
 <div class="terminal-wrapper" style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt};">
 	<div class="scanlines"></div>
@@ -602,6 +667,12 @@ try: konami`,
 	</div>
 	{#if konamiActivated}
 		<div class="konami-flash">🐸</div>
+	{/if}
+	{#if ghostVisible}
+		<div class="ghost-text" style="left: {ghostX}%; top: {ghostY}%;">{ghostText}</div>
+	{/if}
+	{#if idleDreaming}
+		<div class="idle-vignette"></div>
 	{/if}
 </div>
 
@@ -661,6 +732,46 @@ try: konami`,
 		animation: konami-pop 2s ease-out forwards;
 		pointer-events: none;
 		z-index: 100;
+	}
+
+	/* idle dream mode - ghost text */
+	.ghost-text {
+		position: fixed;
+		color: var(--fg);
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 0.9rem;
+		opacity: 0;
+		pointer-events: none;
+		z-index: 50;
+		animation: ghost-fade 3s ease-in-out forwards;
+		text-shadow: 0 0 10px var(--fg), 0 0 20px var(--fg);
+		white-space: nowrap;
+	}
+
+	@keyframes ghost-fade {
+		0% { opacity: 0; transform: translateY(0px); }
+		20% { opacity: 0.25; }
+		50% { opacity: 0.15; }
+		80% { opacity: 0.2; transform: translateY(-10px); }
+		100% { opacity: 0; transform: translateY(-20px); }
+	}
+
+	/* idle vignette - screen darkens slightly at edges */
+	.idle-vignette {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 9;
+		animation: vignette-in 3s ease-in forwards;
+		background: radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.4) 100%);
+	}
+
+	@keyframes vignette-in {
+		0% { opacity: 0; }
+		100% { opacity: 1; }
 	}
 
 	@keyframes konami-pop {
