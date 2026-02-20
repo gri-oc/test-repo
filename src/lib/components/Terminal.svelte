@@ -223,6 +223,40 @@ try: konami`,
 		resetIdle();
 	}
 
+	// === FROG SPAWN EASTER EGG ===
+	// Double-click anywhere to spawn a tiny frog that hops away
+	interface SpawnedFrog {
+		id: number;
+		x: number;
+		y: number;
+		dx: number;
+		dy: number;
+		emoji: string;
+	}
+	let spawnedFrogs: SpawnedFrog[] = [];
+	let frogIdCounter = 0;
+
+	const frogEmojis = ['🐸', '🐸', '🐸', '🐸', '🐸', '💚', '✨'];
+
+	function spawnFrog(e: MouseEvent) {
+		const id = frogIdCounter++;
+		const angle = Math.random() * Math.PI * 2;
+		const speed = 60 + Math.random() * 80;
+		const frog: SpawnedFrog = {
+			id,
+			x: e.clientX,
+			y: e.clientY,
+			dx: Math.cos(angle) * speed,
+			dy: Math.sin(angle) * speed - 80, // bias upward for hop
+			emoji: frogEmojis[Math.floor(Math.random() * frogEmojis.length)],
+		};
+		spawnedFrogs = [...spawnedFrogs, frog];
+		// Remove after animation
+		setTimeout(() => {
+			spawnedFrogs = spawnedFrogs.filter(f => f.id !== id);
+		}, 1200);
+	}
+
 	import { onMount, onDestroy } from 'svelte';
 	onMount(() => { resetIdle(); });
 	onDestroy(() => { clearTimeout(idleTimer); clearInterval(glitchInterval); });
@@ -312,6 +346,7 @@ try: konami`,
 		`v0.1.15 — loot command 🎁 (kobold drops)`,
 		`v0.1.16 — tarot command 🔮 (major arcana readings)`,
 		`v0.1.17 — idle dream mode 💤 (the terminal dreams when you stop typing)`,
+		`v0.1.18 — double-click to spawn frogs 🐸 (they live in the terminal)`,
 	];
 
 	const hackLines = [
@@ -648,7 +683,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} />
+<svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} on:dblclick={spawnFrog} />
 
 <div class="terminal-wrapper" style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt};">
 	<div class="scanlines"></div>
@@ -674,6 +709,12 @@ try: konami`,
 	{#if idleDreaming}
 		<div class="idle-vignette"></div>
 	{/if}
+	{#each spawnedFrogs as frog (frog.id)}
+		<div
+			class="spawned-frog"
+			style="left: {frog.x}px; top: {frog.y}px; --dx: {frog.dx}px; --dy: {frog.dy}px;"
+		>{frog.emoji}</div>
+	{/each}
 </div>
 
 <style>
@@ -772,6 +813,47 @@ try: konami`,
 	@keyframes vignette-in {
 		0% { opacity: 0; }
 		100% { opacity: 1; }
+	}
+
+	/* spawned frog hop animation */
+	.spawned-frog {
+		position: fixed;
+		font-size: 1.4rem;
+		pointer-events: none;
+		z-index: 200;
+		animation: frog-hop 1.2s cubic-bezier(0.25, 0, 0.3, 1) forwards;
+		transform: translate(-50%, -50%);
+	}
+
+	@keyframes frog-hop {
+		0% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(0.3);
+		}
+		15% {
+			opacity: 1;
+			transform: translate(-50%, -50%) scale(1.2);
+		}
+		30% {
+			transform: translate(
+				calc(-50% + var(--dx) * 0.3),
+				calc(-50% + var(--dy) * 0.3)
+			) scale(1) rotate(15deg);
+		}
+		60% {
+			opacity: 0.8;
+			transform: translate(
+				calc(-50% + var(--dx) * 0.7),
+				calc(-50% + var(--dy) * 0.5)
+			) scale(0.8) rotate(-10deg);
+		}
+		100% {
+			opacity: 0;
+			transform: translate(
+				calc(-50% + var(--dx)),
+				calc(-50% + var(--dy))
+			) scale(0.3) rotate(30deg);
+		}
 	}
 
 	@keyframes konami-pop {
