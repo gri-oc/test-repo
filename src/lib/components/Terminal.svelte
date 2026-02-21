@@ -257,6 +257,27 @@ try: konami`,
 		}, 1200);
 	}
 
+	// === CRT PHOSPHOR TRAIL ===
+	interface PhosphorDot {
+		id: number;
+		x: number;
+		y: number;
+	}
+	let phosphorDots: PhosphorDot[] = [];
+	let phosphorId = 0;
+	let lastDotTime = 0;
+
+	function handleMouseMove(e: MouseEvent) {
+		const now = Date.now();
+		if (now - lastDotTime < 40) return; // throttle
+		lastDotTime = now;
+		const id = phosphorId++;
+		phosphorDots = [...phosphorDots.slice(-30), { id, x: e.clientX, y: e.clientY }];
+		setTimeout(() => {
+			phosphorDots = phosphorDots.filter(d => d.id !== id);
+		}, 1200);
+	}
+
 	import { onMount, onDestroy } from 'svelte';
 	onMount(() => { resetIdle(); });
 	onDestroy(() => { clearTimeout(idleTimer); clearInterval(glitchInterval); });
@@ -347,6 +368,7 @@ try: konami`,
 		`v0.1.16 — tarot command 🔮 (major arcana readings)`,
 		`v0.1.17 — idle dream mode 💤 (the terminal dreams when you stop typing)`,
 		`v0.1.18 — double-click to spawn frogs 🐸 (they live in the terminal)`,
+		`v0.1.19 — phosphor trail ✨ (the CRT remembers where you've been)`,
 	];
 
 	const hackLines = [
@@ -683,7 +705,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} on:dblclick={spawnFrog} />
+<svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} on:dblclick={spawnFrog} on:mousemove={handleMouseMove} />
 
 <div class="terminal-wrapper" style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt};">
 	<div class="scanlines"></div>
@@ -709,6 +731,9 @@ try: konami`,
 	{#if idleDreaming}
 		<div class="idle-vignette"></div>
 	{/if}
+	{#each phosphorDots as dot (dot.id)}
+		<div class="phosphor-dot" style="left: {dot.x}px; top: {dot.y}px;"></div>
+	{/each}
 	{#each spawnedFrogs as frog (frog.id)}
 		<div
 			class="spawned-frog"
@@ -854,6 +879,27 @@ try: konami`,
 				calc(-50% + var(--dy))
 			) scale(0.3) rotate(30deg);
 		}
+	}
+
+	/* CRT phosphor trail */
+	.phosphor-dot {
+		position: fixed;
+		width: 6px;
+		height: 6px;
+		border-radius: 50%;
+		background: var(--fg);
+		pointer-events: none;
+		z-index: 60;
+		transform: translate(-50%, -50%);
+		animation: phosphor-decay 1.2s ease-out forwards;
+		box-shadow: 0 0 4px var(--fg), 0 0 8px var(--fg);
+		mix-blend-mode: screen;
+	}
+
+	@keyframes phosphor-decay {
+		0% { opacity: 0.5; transform: translate(-50%, -50%) scale(1); }
+		30% { opacity: 0.3; }
+		100% { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
 	}
 
 	@keyframes konami-pop {
