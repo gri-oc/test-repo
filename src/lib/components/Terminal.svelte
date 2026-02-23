@@ -257,6 +257,56 @@ try: konami`,
 		}, 1200);
 	}
 
+	// === CRT CHANNEL-SWITCH EFFECT ===
+	let channelSwitching = false;
+	let staticCanvas: HTMLCanvasElement;
+
+	function triggerChannelSwitch() {
+		if (channelSwitching) return;
+		channelSwitching = true;
+		// Draw TV static on canvas
+		if (staticCanvas) {
+			const ctx = staticCanvas.getContext('2d');
+			if (ctx) {
+				const w = staticCanvas.width = window.innerWidth;
+				const h = staticCanvas.height = window.innerHeight;
+				let frame = 0;
+				const maxFrames = 8;
+				const drawStatic = () => {
+					const imgData = ctx.createImageData(w, h);
+					const data = imgData.data;
+					for (let i = 0; i < data.length; i += 4) {
+						const v = Math.random() * 255;
+						data[i] = v;
+						data[i+1] = v;
+						data[i+2] = v;
+						data[i+3] = 160 - frame * 18;
+					}
+					// horizontal tear lines
+					for (let t = 0; t < 3; t++) {
+						const tearY = Math.floor(Math.random() * h);
+						const tearH = 2 + Math.floor(Math.random() * 4);
+						for (let y = tearY; y < Math.min(tearY + tearH, h); y++) {
+							for (let x = 0; x < w; x++) {
+								const idx = (y * w + x) * 4;
+								data[idx] = 255;
+								data[idx+1] = 255;
+								data[idx+2] = 255;
+								data[idx+3] = 200;
+							}
+						}
+					}
+					ctx.putImageData(imgData, 0, 0);
+					frame++;
+					if (frame < maxFrames) requestAnimationFrame(drawStatic);
+					else ctx.clearRect(0, 0, w, h);
+				};
+				drawStatic();
+			}
+		}
+		setTimeout(() => { channelSwitching = false; }, 350);
+	}
+
 	// === ERROR GLITCH EFFECT ===
 	let glitchActive = false;
 
@@ -403,6 +453,7 @@ try: konami`,
 		`v0.1.18 — double-click to spawn frogs 🐸 (they live in the terminal)`,
 		`v0.1.19 — phosphor trail ✨ (the CRT remembers where you've been)`,
 		`v0.1.20 — error glitch 📺 (the terminal freaks out when confused)`,
+		`v0.1.21 — channel switch 📡 (old CRT static + squeeze when changing themes)`,
 	];
 
 	const hackLines = [
@@ -496,6 +547,7 @@ try: konami`,
 				return `available themes: ${Object.keys(themes).join(', ')}\ncurrent: ${currentThemeName}\n\nusage: theme <name>`;
 			}
 			if (themes[name]) {
+				triggerChannelSwitch();
 				currentThemeName = name;
 				return `switched to '${name}' theme.`;
 			}
@@ -741,7 +793,7 @@ try: konami`,
 
 <svelte:window on:keydown={(e) => { handleKonami(e); handleActivity(); }} on:click={handleActivity} on:touchstart={handleActivity} on:dblclick={spawnFrog} on:mousemove={handleMouseMove} />
 
-<div class="terminal-wrapper" class:glitch-active={glitchActive} style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt}; --err: {activeTheme.error};">
+<div class="terminal-wrapper" class:channel-switch={channelSwitching} class:glitch-active={glitchActive} style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt}; --err: {activeTheme.error};">
 	<div class="scanlines"></div>
 	<div class="crt">
 		{#key currentThemeName}
@@ -756,6 +808,7 @@ try: konami`,
 			/>
 		{/key}
 	</div>
+	<canvas bind:this={staticCanvas} class="static-canvas" class:static-active={channelSwitching}></canvas>
 	{#if konamiActivated}
 		<div class="konami-flash">🐸</div>
 	{/if}
@@ -790,6 +843,48 @@ try: konami`,
 		outline: none !important;
 		box-shadow: none !important;
 		border-radius: 0 !important;
+	}
+
+	/* CRT channel-switch static canvas */
+	.static-canvas {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 300;
+		opacity: 0;
+		transition: opacity 0.05s;
+	}
+
+	.static-canvas.static-active {
+		opacity: 1;
+		animation: channel-switch 0.35s steps(3) forwards;
+	}
+
+	@keyframes channel-switch {
+		0% { opacity: 0.9; }
+		15% { opacity: 1; }
+		30% { opacity: 0.7; }
+		50% { opacity: 0.5; }
+		70% { opacity: 0.3; }
+		85% { opacity: 0.1; }
+		100% { opacity: 0; }
+	}
+
+	/* CRT squeeze on channel switch */
+	.channel-switch .crt {
+		animation: crt-squeeze 0.35s ease-out forwards;
+	}
+
+	@keyframes crt-squeeze {
+		0% { transform: scaleY(1) scaleX(1); filter: brightness(2); }
+		15% { transform: scaleY(0.005) scaleX(1.1); filter: brightness(3); }
+		30% { transform: scaleY(0.005) scaleX(1.1); filter: brightness(2.5); }
+		50% { transform: scaleY(0.3) scaleX(1.02); filter: brightness(1.5); }
+		70% { transform: scaleY(0.8) scaleX(1); filter: brightness(1.2); }
+		100% { transform: scaleY(1) scaleX(1); filter: brightness(1); }
 	}
 
 	/* CRT scanlines overlay */
