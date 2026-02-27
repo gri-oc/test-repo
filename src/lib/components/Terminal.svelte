@@ -349,6 +349,17 @@ try: konami`,
 	let typeBursts: TypeBurst[] = [];
 	let typeBurstId = 0;
 
+	// === RAPID TYPE PULSE ===
+	interface TypePulse {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+	}
+	let typePulses: TypePulse[] = [];
+	let typePulseId = 0;
+	let recentTypeTimes: number[] = [];
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -463,6 +474,30 @@ try: konami`,
 		}, 550);
 	}
 
+	function spawnTypePulse() {
+		const x = gridCursorVisible && charWidth > 0 ? gridCursorX + charWidth * 0.5 : window.innerWidth * 0.5;
+		const y = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+		const id = typePulseId++;
+		typePulses = [
+			...typePulses.slice(-6),
+			{ id, x, y, size: 26 + Math.random() * 16 },
+		];
+		setTimeout(() => {
+			typePulses = typePulses.filter((p) => p.id !== id);
+		}, 520);
+	}
+
+	function trackRapidTyping(e: KeyboardEvent) {
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		if (e.key.length !== 1 && e.key !== 'Enter' && e.key !== 'Backspace') return;
+		const now = performance.now();
+		recentTypeTimes = [...recentTypeTimes.filter((t) => now - t <= 350), now];
+		if (recentTypeTimes.length >= 3) {
+			spawnTypePulse();
+			recentTypeTimes = [];
+		}
+	}
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -474,6 +509,7 @@ try: konami`,
 		handleKonami(e);
 		handleActivity();
 		spawnTypeBurst(e);
+		trackRapidTyping(e);
 	}
 
 	const fortunes = [
@@ -558,6 +594,7 @@ try: konami`,
 		`v0.1.19 — error glitch 📺 (the terminal freaks out when confused)`,
 		`v0.1.20 — channel switch 📡 (old CRT static + squeeze when changing themes)`,
 		`v0.1.21 — click sparks ✨ (the phosphor is fragile — touch it and it sparks)`,
+		`v0.1.22 — rapid type pulse ◯ (typing fast emits a CRT shockwave)`,
 	];
 
 	const hackLines = [
@@ -931,6 +968,9 @@ try: konami`,
 	{#each sparks as spark (spark.id)}
 		<div class="spark" style="left: {spark.x}px; top: {spark.y}px; width: {spark.size}px; height: {spark.size}px;"></div>
 	{/each}
+	{#each typePulses as pulse (pulse.id)}
+		<div class="type-pulse" style="left: {pulse.x}px; top: {pulse.y}px; --size: {pulse.size}px;"></div>
+	{/each}
 	{#each typeBursts as burst (burst.id)}
 		<div
 			class="type-burst"
@@ -1196,6 +1236,35 @@ try: konami`,
 		0% { opacity: 1; }
 		60% { opacity: 0.7; }
 		100% { opacity: 0; }
+	}
+
+	/* Rapid typing pulse wave */
+	.type-pulse {
+		position: fixed;
+		pointer-events: none;
+		z-index: 85;
+		width: var(--size);
+		height: var(--size);
+		border-radius: 50%;
+		border: 1.5px solid color-mix(in oklab, var(--fg) 85%, white 15%);
+		box-shadow: 0 0 10px var(--fg), inset 0 0 8px color-mix(in oklab, var(--fg) 65%, transparent 35%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%) scale(0.4);
+		animation: type-pulse-wave 0.52s cubic-bezier(0.18, 0.72, 0.2, 1) forwards;
+	}
+
+	@keyframes type-pulse-wave {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.4);
+		}
+		20% {
+			opacity: 0.55;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(3.2);
+		}
 	}
 
 	/* Floating glyphs when typing */
