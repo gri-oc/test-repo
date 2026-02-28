@@ -360,6 +360,15 @@ try: konami`,
 	let typePulseId = 0;
 	let recentTypeTimes: number[] = [];
 
+	// === ENTER SWEEP EFFECT ===
+	interface EnterSweep {
+		id: number;
+		y: number;
+		thickness: number;
+	}
+	let enterSweeps: EnterSweep[] = [];
+	let enterSweepId = 0;
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -498,6 +507,19 @@ try: konami`,
 		}
 	}
 
+	function spawnEnterSweep(e: KeyboardEvent) {
+		if (e.key !== 'Enter') return;
+		const y = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+		const id = enterSweepId++;
+		enterSweeps = [
+			...enterSweeps.slice(-4),
+			{ id, y, thickness: 1 + Math.random() * 1.5 },
+		];
+		setTimeout(() => {
+			enterSweeps = enterSweeps.filter((s) => s.id !== id);
+		}, 420);
+	}
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -510,6 +532,7 @@ try: konami`,
 		handleActivity();
 		spawnTypeBurst(e);
 		trackRapidTyping(e);
+		spawnEnterSweep(e);
 	}
 
 	const fortunes = [
@@ -595,6 +618,7 @@ try: konami`,
 		`v0.1.20 — channel switch 📡 (old CRT static + squeeze when changing themes)`,
 		`v0.1.21 — click sparks ✨ (the phosphor is fragile — touch it and it sparks)`,
 		`v0.1.22 — rapid type pulse ◯ (typing fast emits a CRT shockwave)`,
+		`v0.1.23 — enter sweep ═ (pressing enter fires a horizontal phosphor beam)`,
 	];
 
 	const hackLines = [
@@ -971,6 +995,9 @@ try: konami`,
 	{#each typePulses as pulse (pulse.id)}
 		<div class="type-pulse" style="left: {pulse.x}px; top: {pulse.y}px; --size: {pulse.size}px;"></div>
 	{/each}
+	{#each enterSweeps as sweep (sweep.id)}
+		<div class="enter-sweep" style="top: {sweep.y}px; --thickness: {sweep.thickness}px;"></div>
+	{/each}
 	{#each typeBursts as burst (burst.id)}
 		<div
 			class="type-burst"
@@ -1264,6 +1291,42 @@ try: konami`,
 		100% {
 			opacity: 0;
 			transform: translate(-50%, -50%) scale(3.2);
+		}
+	}
+
+	/* Enter key phosphor beam */
+	.enter-sweep {
+		position: fixed;
+		left: 0;
+		width: 100%;
+		height: var(--thickness);
+		pointer-events: none;
+		z-index: 88;
+		opacity: 0;
+		background: linear-gradient(
+			90deg,
+			transparent 0%,
+			color-mix(in oklab, var(--fg) 95%, white 5%) 35%,
+			white 50%,
+			color-mix(in oklab, var(--fg) 95%, white 5%) 65%,
+			transparent 100%
+		);
+		box-shadow: 0 0 8px var(--fg), 0 0 16px color-mix(in oklab, var(--fg) 70%, white 30%);
+		mix-blend-mode: screen;
+		animation: enter-sweep-run 0.42s cubic-bezier(0.18, 0.75, 0.2, 1) forwards;
+	}
+
+	@keyframes enter-sweep-run {
+		0% {
+			opacity: 0;
+			transform: translateX(-100%) scaleX(0.5);
+		}
+		18% {
+			opacity: 0.9;
+		}
+		100% {
+			opacity: 0;
+			transform: translateX(100%) scaleX(1.1);
 		}
 	}
 
