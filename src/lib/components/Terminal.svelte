@@ -419,7 +419,43 @@ try: konami`,
 	let phosphorId = 0;
 	let lastDotTime = 0;
 
+	// === MOUSE PANIC SHOCKWAVE ===
+	interface MouseShockwave {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+	}
+	let mouseShockwaves: MouseShockwave[] = [];
+	let mouseShockwaveId = 0;
+	let lastMouseSample = { x: 0, y: 0, t: 0 };
+	let lastMousePanicAt = 0;
+
+	function triggerMousePanic(x: number, y: number) {
+		const id = mouseShockwaveId++;
+		mouseShockwaves = [
+			...mouseShockwaves.slice(-4),
+			{ id, x, y, size: 48 + Math.random() * 30 },
+		];
+		setTimeout(() => {
+			mouseShockwaves = mouseShockwaves.filter((w) => w.id !== id);
+		}, 520);
+	}
+
 	function handleMouseMove(e: MouseEvent) {
+		const nowPerf = performance.now();
+		if (lastMouseSample.t > 0) {
+			const dt = Math.max(1, nowPerf - lastMouseSample.t);
+			const dx = e.clientX - lastMouseSample.x;
+			const dy = e.clientY - lastMouseSample.y;
+			const speed = Math.hypot(dx, dy) / dt; // px/ms
+			if (speed > 2.4 && nowPerf - lastMousePanicAt > 500) {
+				triggerMousePanic(e.clientX, e.clientY);
+				lastMousePanicAt = nowPerf;
+			}
+		}
+		lastMouseSample = { x: e.clientX, y: e.clientY, t: nowPerf };
+
 		// Grid cursor
 		if (charWidth > 0 && lineHeight > 0) {
 			const wrapper = document.querySelector('.terminal-wrapper');
@@ -619,6 +655,7 @@ try: konami`,
 		`v0.1.21 — click sparks ✨ (the phosphor is fragile — touch it and it sparks)`,
 		`v0.1.22 — rapid type pulse ◯ (typing fast emits a CRT shockwave)`,
 		`v0.1.23 — enter sweep ═ (pressing enter fires a horizontal phosphor beam)`,
+		`v0.1.24 — mouse panic wave 🌀 (shake your mouse fast to destabilize phosphor space)`,
 	];
 
 	const hackLines = [
@@ -995,6 +1032,9 @@ try: konami`,
 	{#each typePulses as pulse (pulse.id)}
 		<div class="type-pulse" style="left: {pulse.x}px; top: {pulse.y}px; --size: {pulse.size}px;"></div>
 	{/each}
+	{#each mouseShockwaves as wave (wave.id)}
+		<div class="mouse-shockwave" style="left: {wave.x}px; top: {wave.y}px; --size: {wave.size}px;"></div>
+	{/each}
 	{#each enterSweeps as sweep (sweep.id)}
 		<div class="enter-sweep" style="top: {sweep.y}px; --thickness: {sweep.thickness}px;"></div>
 	{/each}
@@ -1291,6 +1331,37 @@ try: konami`,
 		100% {
 			opacity: 0;
 			transform: translate(-50%, -50%) scale(3.2);
+		}
+	}
+
+	/* Mouse panic wave (shake mouse fast) */
+	.mouse-shockwave {
+		position: fixed;
+		pointer-events: none;
+		z-index: 86;
+		width: var(--size);
+		height: var(--size);
+		border-radius: 50%;
+		border: 1px solid color-mix(in oklab, var(--fg) 75%, white 25%);
+		box-shadow: 0 0 8px var(--fg), inset 0 0 10px color-mix(in oklab, var(--fg) 45%, transparent 55%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%) scale(0.25);
+		animation: mouse-panic-wave 0.52s cubic-bezier(0.22, 0.76, 0.24, 1) forwards;
+	}
+
+	@keyframes mouse-panic-wave {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.25);
+			filter: blur(0px);
+		}
+		18% {
+			opacity: 0.65;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(4.5);
+			filter: blur(1px);
 		}
 	}
 
