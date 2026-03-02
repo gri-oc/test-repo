@@ -369,6 +369,21 @@ try: konami`,
 	let enterSweeps: EnterSweep[] = [];
 	let enterSweepId = 0;
 
+	// === SECRET FROG PARADE (type "lobb") ===
+	interface FrogHop {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+		duration: number;
+		rotation: number;
+		delay: number;
+	}
+	let frogHops: FrogHop[] = [];
+	let frogHopId = 0;
+	let frogBuffer = '';
+	let frogLastKeyAt = 0;
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -556,6 +571,39 @@ try: konami`,
 		}, 420);
 	}
 
+
+	function triggerFrogParade() {
+		const baseY = Math.max(90, window.innerHeight - 110);
+		const hops: FrogHop[] = Array.from({ length: 7 }, (_, i) => ({
+			id: frogHopId++,
+			x: 40 + (window.innerWidth - 80) * (i / 6),
+			y: baseY + (Math.random() - 0.5) * 26,
+			size: 18 + Math.random() * 12,
+			duration: 560 + Math.random() * 260,
+			rotation: (Math.random() - 0.5) * 24,
+			delay: i * 70,
+		}));
+		frogHops = [...frogHops.slice(-12), ...hops];
+		hops.forEach((hop) => {
+			setTimeout(() => {
+				frogHops = frogHops.filter((f) => f.id !== hop.id);
+			}, hop.delay + hop.duration + 240);
+		});
+	}
+
+	function trackSecretFrog(e: KeyboardEvent) {
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		if (e.key.length !== 1) return;
+		const now = performance.now();
+		if (now - frogLastKeyAt > 1800) frogBuffer = '';
+		frogLastKeyAt = now;
+		frogBuffer = (frogBuffer + e.key.toLowerCase()).slice(-4);
+		if (frogBuffer === 'lobb') {
+			frogBuffer = '';
+			triggerFrogParade();
+		}
+	}
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -569,6 +617,7 @@ try: konami`,
 		spawnTypeBurst(e);
 		trackRapidTyping(e);
 		spawnEnterSweep(e);
+		trackSecretFrog(e);
 	}
 
 	const fortunes = [
@@ -656,6 +705,7 @@ try: konami`,
 		`v0.1.22 — rapid type pulse ◯ (typing fast emits a CRT shockwave)`,
 		`v0.1.23 — enter sweep ═ (pressing enter fires a horizontal phosphor beam)`,
 		`v0.1.24 — mouse panic wave 🌀 (shake your mouse fast to destabilize phosphor space)`,
+		`v0.1.25 — frog parade 🐸 (type 'lobb' to unleash tiny hopping frogs)`,
 	];
 
 	const hackLines = [
@@ -1035,6 +1085,14 @@ try: konami`,
 	{#each mouseShockwaves as wave (wave.id)}
 		<div class="mouse-shockwave" style="left: {wave.x}px; top: {wave.y}px; --size: {wave.size}px;"></div>
 	{/each}
+	{#each frogHops as frog (frog.id)}
+		<div
+			class="frog-hop"
+			style="left: {frog.x}px; top: {frog.y}px; font-size: {frog.size}px; --dur: {frog.duration}ms; --delay: {frog.delay}ms; --rot: {frog.rotation}deg;"
+		>
+			🐸
+		</div>
+	{/each}
 	{#each enterSweeps as sweep (sweep.id)}
 		<div class="enter-sweep" style="top: {sweep.y}px; --thickness: {sweep.thickness}px;"></div>
 	{/each}
@@ -1362,6 +1420,36 @@ try: konami`,
 			opacity: 0;
 			transform: translate(-50%, -50%) scale(4.5);
 			filter: blur(1px);
+		}
+	}
+
+
+	/* Secret frog parade */
+	.frog-hop {
+		position: fixed;
+		pointer-events: none;
+		z-index: 92;
+		filter: drop-shadow(0 0 6px color-mix(in oklab, var(--fg) 70%, white 30%));
+		transform: translate(-50%, -50%);
+		animation: frog-hop var(--dur) cubic-bezier(0.24, 0.84, 0.22, 1) forwards;
+		animation-delay: var(--delay);
+		opacity: 0;
+	}
+
+	@keyframes frog-hop {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translateX(-24px) translateY(0) scale(0.85) rotate(calc(var(--rot) - 8deg));
+		}
+		20% {
+			opacity: 1;
+		}
+		55% {
+			transform: translate(-50%, -50%) translateX(8px) translateY(-30px) scale(1.12) rotate(var(--rot));
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translateX(36px) translateY(3px) scale(0.92) rotate(calc(var(--rot) + 10deg));
 		}
 	}
 
