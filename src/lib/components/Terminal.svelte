@@ -450,6 +450,23 @@ try: konami`,
 	let lastMouseSample = { x: 0, y: 0, t: 0 };
 	let lastMousePanicAt = 0;
 
+	// === CURSOR RUNE SWARM (stay still, summon nonsense) ===
+	interface CursorRune {
+		id: number;
+		x: number;
+		y: number;
+		char: string;
+		startX: number;
+		startY: number;
+		endX: number;
+		endY: number;
+		duration: number;
+	}
+	let cursorRunes: CursorRune[] = [];
+	let cursorRuneId = 0;
+	let stillMouseTimer: ReturnType<typeof setTimeout>;
+	const runeChars = ['¤', '·', '+', '*', '~', '°', '◦'];
+
 	function triggerMousePanic(x: number, y: number) {
 		const id = mouseShockwaveId++;
 		mouseShockwaves = [
@@ -459,6 +476,42 @@ try: konami`,
 		setTimeout(() => {
 			mouseShockwaves = mouseShockwaves.filter((w) => w.id !== id);
 		}, 520);
+	}
+
+	function summonCursorRunes(x: number, y: number) {
+		const count = 4 + Math.floor(Math.random() * 4);
+		const runes: CursorRune[] = Array.from({ length: count }, (_, i) => {
+			const angle = (Math.PI * 2 * i) / count + Math.random() * 0.5;
+			const radius = 12 + Math.random() * 22;
+			const startX = Math.cos(angle) * radius;
+			const startY = Math.sin(angle) * radius;
+			const endX = startX + (Math.random() - 0.5) * 24;
+			const endY = startY - 16 - Math.random() * 26;
+			return {
+				id: cursorRuneId++,
+				x,
+				y,
+				char: runeChars[Math.floor(Math.random() * runeChars.length)],
+				startX,
+				startY,
+				endX,
+				endY,
+				duration: 1000 + Math.random() * 700,
+			};
+		});
+		cursorRunes = [...cursorRunes.slice(-20), ...runes];
+		runes.forEach((rune) => {
+			setTimeout(() => {
+				cursorRunes = cursorRunes.filter((r) => r.id !== rune.id);
+			}, rune.duration + 120);
+		});
+	}
+
+	function trackStillMouse(e: MouseEvent) {
+		clearTimeout(stillMouseTimer);
+		stillMouseTimer = setTimeout(() => {
+			summonCursorRunes(e.clientX, e.clientY);
+		}, 1200);
 	}
 
 	function handleMouseMove(e: MouseEvent) {
@@ -496,22 +549,31 @@ try: konami`,
 
 		// Phosphor trail
 		const now = Date.now();
-		if (now - lastDotTime < 40) return; // throttle
-		lastDotTime = now;
-		const id = phosphorId++;
-		phosphorDots = [...phosphorDots.slice(-30), { id, x: e.clientX, y: e.clientY }];
-		setTimeout(() => {
-			phosphorDots = phosphorDots.filter(d => d.id !== id);
-		}, 1200);
+		if (now - lastDotTime >= 40) {
+			lastDotTime = now;
+			const id = phosphorId++;
+			phosphorDots = [...phosphorDots.slice(-30), { id, x: e.clientX, y: e.clientY }];
+			setTimeout(() => {
+				phosphorDots = phosphorDots.filter(d => d.id !== id);
+			}, 1200);
+		}
+
+		trackStillMouse(e);
 	}
 
 	function handleMouseLeave() {
 		gridCursorVisible = false;
+		clearTimeout(stillMouseTimer);
 	}
 
 	import { onMount, onDestroy } from 'svelte';
 	onMount(() => { resetIdle(); setupErrorObserver(); measureCharMetrics(); });
-	onDestroy(() => { clearTimeout(idleTimer); clearInterval(glitchInterval); clearTimeout(overclockTimeout); });
+	onDestroy(() => {
+		clearTimeout(idleTimer);
+		clearInterval(glitchInterval);
+		clearTimeout(overclockTimeout);
+		clearTimeout(stillMouseTimer);
+	});
 
 	function spawnTypeBurst(e: KeyboardEvent) {
 		if (e.ctrlKey || e.metaKey || e.altKey) return;
@@ -725,6 +787,7 @@ try: konami`,
 		`v0.1.24 — mouse panic wave 🌀 (shake your mouse fast to destabilize phosphor space)`,
 		`v0.1.25 — frog parade 🐸 (type 'lobb' to unleash tiny hopping frogs)`,
 		`v0.1.26 — overclock mode ⚡ (type like a maniac to short-circuit the CRT for a moment)`,
+		`v0.1.27 — cursor rune swarm ✧ (hold your mouse still to summon tiny floating glyphs)`,
 	];
 
 	const hackLines = [
@@ -1106,6 +1169,14 @@ try: konami`,
 	{/each}
 	{#each mouseShockwaves as wave (wave.id)}
 		<div class="mouse-shockwave" style="left: {wave.x}px; top: {wave.y}px; --size: {wave.size}px;"></div>
+	{/each}
+	{#each cursorRunes as rune (rune.id)}
+		<div
+			class="cursor-rune"
+			style="left: {rune.x}px; top: {rune.y}px; --sx: {rune.startX}px; --sy: {rune.startY}px; --ex: {rune.endX}px; --ey: {rune.endY}px; --dur: {rune.duration}ms;"
+		>
+			{rune.char}
+		</div>
 	{/each}
 	{#each frogHops as frog (frog.id)}
 		<div
@@ -1490,6 +1561,34 @@ try: konami`,
 		}
 	}
 
+	/* Cursor rune swarm (mouse still for ~1.2s) */
+	.cursor-rune {
+		position: fixed;
+		pointer-events: none;
+		z-index: 91;
+		color: color-mix(in oklab, var(--fg) 90%, white 10%);
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 0.92rem;
+		text-shadow: 0 0 6px var(--fg), 0 0 14px color-mix(in oklab, var(--fg) 70%, white 30%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%);
+		animation: cursor-rune-drift var(--dur) cubic-bezier(0.2, 0.78, 0.2, 1) forwards;
+	}
+
+	@keyframes cursor-rune-drift {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translate(0, 0) rotate(0deg) scale(0.8);
+		}
+		20% {
+			opacity: 0.8;
+			transform: translate(-50%, -50%) translate(var(--sx), var(--sy)) rotate(0deg) scale(1);
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translate(var(--ex), var(--ey)) rotate(18deg) scale(1.12);
+		}
+	}
 
 	/* Secret frog parade */
 	.frog-hop {
