@@ -433,6 +433,23 @@ try: konami`,
 	let capsRageTimeout: ReturnType<typeof setTimeout>;
 	let capsRecentTimes: number[] = [];
 
+	// === BACKSPACE VOID (spam ⌫ to rip tiny holes in reality) ===
+	interface VoidShard {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+		dx: number;
+		dy: number;
+		duration: number;
+		delay: number;
+	}
+	let voidShards: VoidShard[] = [];
+	let voidShardId = 0;
+	let backspaceTimes: number[] = [];
+	let voidPulse = false;
+	let voidPulseTimeout: ReturnType<typeof setTimeout>;
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -618,6 +635,7 @@ try: konami`,
 		clearInterval(glitchInterval);
 		clearTimeout(overclockTimeout);
 		clearTimeout(capsRageTimeout);
+		clearTimeout(voidPulseTimeout);
 		clearTimeout(stillMouseTimer);
 	});
 
@@ -851,6 +869,44 @@ try: konami`,
 		}
 	}
 
+	function triggerBackspaceVoid(originX: number, originY: number) {
+		voidPulse = true;
+		clearTimeout(voidPulseTimeout);
+		voidPulseTimeout = setTimeout(() => {
+			voidPulse = false;
+		}, 520);
+
+		const shards: VoidShard[] = Array.from({ length: 14 }, () => ({
+			id: voidShardId++,
+			x: originX + (Math.random() - 0.5) * 80,
+			y: originY + (Math.random() - 0.5) * 34,
+			size: 8 + Math.random() * 18,
+			dx: (Math.random() - 0.5) * 120,
+			dy: -20 - Math.random() * 70,
+			duration: 380 + Math.random() * 260,
+			delay: Math.random() * 90,
+		}));
+		voidShards = [...voidShards.slice(-40), ...shards];
+		shards.forEach((shard) => {
+			setTimeout(() => {
+				voidShards = voidShards.filter((s) => s.id !== shard.id);
+			}, shard.duration + shard.delay + 90);
+		});
+	}
+
+	function trackBackspaceVoid(e: KeyboardEvent) {
+		if (e.key !== 'Backspace') return;
+		const now = performance.now();
+		backspaceTimes = [...backspaceTimes.filter((t) => now - t <= 850), now];
+		const furiousDeletes = backspaceTimes.filter((t) => now - t <= 420).length;
+		if (furiousDeletes >= 6) {
+			backspaceTimes = [];
+			const x = gridCursorVisible && charWidth > 0 ? gridCursorX + charWidth * 0.5 : window.innerWidth * 0.5;
+			const y = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+			triggerBackspaceVoid(x, y);
+		}
+	}
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -868,6 +924,7 @@ try: konami`,
 		trackEllipsisPing(e);
 		trackPanicStorm(e);
 		trackCapsRage(e);
+		trackBackspaceVoid(e);
 	}
 
 	const fortunes = [
@@ -961,6 +1018,7 @@ try: konami`,
 		`v0.1.28 — ellipsis ping ◉ (type '...' quickly to emit a weird CRT sonar pulse)`,
 		`v0.1.29 — panic storm ‽ (type ?!? or !?! quickly to make punctuation rain from the void)`,
 		`v0.1.30 — caps rage 🔊 (yell in ALL CAPS to trigger a "TOO LOUD" burst of flying letters)`,
+		`v0.1.31 — backspace void 🕳️ (spam backspace to tear tiny black shards out of the terminal)`,
 	];
 
 	const hackLines = [
@@ -1361,6 +1419,15 @@ try: konami`,
 		>
 			{shard.char}
 		</div>
+	{/each}
+	{#if voidPulse}
+		<div class="void-pulse"></div>
+	{/if}
+	{#each voidShards as shard (shard.id)}
+		<div
+			class="void-shard"
+			style="left: {shard.x}px; top: {shard.y}px; --size: {shard.size}px; --dx: {shard.dx}px; --dy: {shard.dy}px; --dur: {shard.duration}ms; --delay: {shard.delay}ms;"
+		></div>
 	{/each}
 	{#each mouseShockwaves as wave (wave.id)}
 		<div class="mouse-shockwave" style="left: {wave.x}px; top: {wave.y}px; --size: {wave.size}px;"></div>
@@ -1859,6 +1926,55 @@ try: konami`,
 		100% {
 			opacity: 0;
 			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.1) rotate(var(--rot));
+		}
+	}
+
+	/* Backspace void (furious deleting tears tiny holes) */
+	.void-pulse {
+		position: fixed;
+		left: 0;
+		top: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 93;
+		background: radial-gradient(circle at 50% 55%, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.08) 35%, transparent 64%);
+		mix-blend-mode: multiply;
+		animation: void-pulse 0.52s ease-out forwards;
+	}
+
+	.void-shard {
+		position: fixed;
+		pointer-events: none;
+		z-index: 92;
+		width: var(--size);
+		height: calc(var(--size) * 0.66);
+		border-radius: 2px;
+		background: linear-gradient(135deg, rgba(0, 0, 0, 0.95), rgba(12, 12, 12, 0.45));
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		box-shadow: 0 0 10px rgba(0, 0, 0, 0.65), inset 0 0 6px rgba(255, 255, 255, 0.08);
+		transform: translate(-50%, -50%) rotate(0deg);
+		animation: void-shard-fly var(--dur) cubic-bezier(0.2, 0.75, 0.2, 1) forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes void-pulse {
+		0% { opacity: 0; }
+		20% { opacity: 0.8; }
+		100% { opacity: 0; }
+	}
+
+	@keyframes void-shard-fly {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.7) rotate(0deg);
+		}
+		20% {
+			opacity: 0.95;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.08) rotate(22deg);
 		}
 	}
 
