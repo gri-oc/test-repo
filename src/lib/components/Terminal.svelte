@@ -599,6 +599,21 @@ try: konami`,
 	let wheelRuneId = 0;
 	let lastWheelAt = 0;
 
+	// === COPY GHOSTS (copy selected text, watch it float away) ===
+	interface CopyGhost {
+		id: number;
+		x: number;
+		y: number;
+		text: string;
+		dx: number;
+		dy: number;
+		duration: number;
+		delay: number;
+		scale: number;
+	}
+	let copyGhosts: CopyGhost[] = [];
+	let copyGhostId = 0;
+
 	function spawnRealityRipple(e: MouseEvent) {
 		const ripple: RealityRipple = {
 			id: realityRippleId++,
@@ -726,6 +741,42 @@ try: konami`,
 		handleActivity();
 		const text = e.clipboardData?.getData('text') ?? '';
 		triggerPasteCascade(text);
+	}
+
+	function triggerCopyGhosts(selection: string) {
+		const cleaned = selection.replace(/\s+/g, ' ').trim();
+		if (!cleaned) return;
+
+		const chunks = cleaned.slice(0, 42).split(/\s+/).filter(Boolean);
+		const sample = chunks.length > 0 ? chunks : [cleaned.slice(0, 8)];
+		const count = Math.min(8, Math.max(3, sample.length));
+		const originX = gridCursorVisible && charWidth > 0 ? gridCursorX + charWidth * 0.5 : window.innerWidth * 0.5;
+		const originY = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+
+		const ghosts: CopyGhost[] = Array.from({ length: count }, (_, i) => ({
+			id: copyGhostId++,
+			x: originX + (Math.random() - 0.5) * 140,
+			y: originY + (Math.random() - 0.5) * 38,
+			text: sample[i % sample.length].slice(0, 12),
+			dx: (Math.random() - 0.5) * 130,
+			dy: -40 - Math.random() * 110,
+			duration: 680 + Math.random() * 520,
+			delay: i * 26 + Math.random() * 90,
+			scale: 0.78 + Math.random() * 0.48,
+		}));
+
+		copyGhosts = [...copyGhosts.slice(-40), ...ghosts];
+		ghosts.forEach((ghost) => {
+			setTimeout(() => {
+				copyGhosts = copyGhosts.filter((g) => g.id !== ghost.id);
+			}, ghost.duration + ghost.delay + 140);
+		});
+	}
+
+	function handleCopy() {
+		handleActivity();
+		const selection = window.getSelection()?.toString() ?? '';
+		triggerCopyGhosts(selection);
 	}
 
 	function handleVisibilityChange() {
@@ -1253,6 +1304,7 @@ try: konami`,
 		`v0.1.34 — tab resync echo ⟂ (switch tabs and come back to a tiny glyph rain "where were you?")`,
 		`v0.1.35 — paste cascade ☔ (paste text and watch your own glyphs rain through CRT space)`,
 		`v0.1.36 — wheel shear 🛞 (scroll to bend text-space sideways with drifting glyph streaks)`,
+		`v0.1.37 — copy ghosts 📋 (copy selected text and watch fragments of it escape upward)`,
 	];
 
 	const hackLines = [
@@ -1590,7 +1642,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={handleKeyDown} on:paste={handlePaste} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:touchstart={handleActivity} on:mousemove={handleMouseMove} on:mouseleave={handleMouseLeave} />
+<svelte:window on:keydown={handleKeyDown} on:paste={handlePaste} on:copy={handleCopy} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:touchstart={handleActivity} on:mousemove={handleMouseMove} on:mouseleave={handleMouseLeave} />
 
 <div class="terminal-wrapper" class:channel-switch={channelSwitching} class:glitch-active={glitchActive} class:overclocked={overclocked} style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt}; --err: {activeTheme.error};">
 	<div class="scanlines"></div>
@@ -1721,6 +1773,14 @@ try: konami`,
 			style="left: {burst.x}px; top: {burst.y}px; --dx: {burst.dx}px; --dy: {burst.dy}px; --rot: {burst.rotate}deg;"
 		>
 			{burst.char}
+		</div>
+	{/each}
+	{#each copyGhosts as ghost (ghost.id)}
+		<div
+			class="copy-ghost"
+			style="left: {ghost.x}px; top: {ghost.y}px; --dx: {ghost.dx}px; --dy: {ghost.dy}px; --dur: {ghost.duration}ms; --delay: {ghost.delay}ms; --scale: {ghost.scale};"
+		>
+			{ghost.text}
 		</div>
 	{/each}
 </div>
@@ -2551,6 +2611,38 @@ try: konami`,
 		100% {
 			opacity: 0;
 			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.15) rotate(var(--rot));
+		}
+	}
+
+	/* Copy ghosts (copy selected text and it escapes upward) */
+	.copy-ghost {
+		position: fixed;
+		pointer-events: none;
+		z-index: 94;
+		color: color-mix(in oklab, var(--fg) 90%, white 10%);
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 0.86rem;
+		text-shadow: 0 0 8px var(--fg), 0 0 16px color-mix(in oklab, var(--fg) 68%, white 32%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%);
+		opacity: 0;
+		animation: copy-ghost-float var(--dur) cubic-bezier(0.2, 0.76, 0.2, 1) forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes copy-ghost-float {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(calc(var(--scale) * 0.75)) rotate(-2deg);
+			filter: blur(0px);
+		}
+		18% {
+			opacity: 0.95;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(calc(var(--scale) * 1.08)) rotate(4deg);
+			filter: blur(0.9px);
 		}
 	}
 
