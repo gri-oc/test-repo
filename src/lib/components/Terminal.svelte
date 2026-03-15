@@ -614,6 +614,58 @@ try: konami`,
 	let copyGhosts: CopyGhost[] = [];
 	let copyGhostId = 0;
 
+
+	// === MORNING BOOT RITUAL (08:00 Berlin) ===
+	interface MorningMote {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+		drift: number;
+		duration: number;
+		delay: number;
+	}
+	let morningRitualActive = false;
+	let morningMotes: MorningMote[] = [];
+	let morningMoteId = 0;
+
+	function getBerlinTimeParts() {
+		const formatter = new Intl.DateTimeFormat('en-GB', {
+			timeZone: 'Europe/Berlin',
+			hour: '2-digit',
+			minute: '2-digit',
+			hour12: false,
+		});
+		const parts = formatter.formatToParts(new Date());
+		const hour = Number(parts.find((p) => p.type === 'hour')?.value ?? '0');
+		const minute = Number(parts.find((p) => p.type === 'minute')?.value ?? '0');
+		return { hour, minute };
+	}
+
+	function inMorningRitualWindow() {
+		const { hour, minute } = getBerlinTimeParts();
+		return hour === 8 && minute <= 25;
+	}
+
+	function triggerMorningRitual() {
+		if (morningRitualActive) return;
+		morningRitualActive = true;
+		const motes: MorningMote[] = Array.from({ length: 26 }, (_, i) => ({
+			id: morningMoteId++,
+			x: 4 + Math.random() * 92,
+			y: 8 + Math.random() * 84,
+			size: 1.5 + Math.random() * 3.5,
+			drift: -14 + Math.random() * 28,
+			duration: 3200 + Math.random() * 3600,
+			delay: i * 40 + Math.random() * 420,
+		}));
+		morningMotes = motes;
+		setTimeout(() => {
+			morningRitualActive = false;
+			morningMotes = [];
+		}, 9800);
+	}
+
 	function spawnRealityRipple(e: MouseEvent) {
 		const ripple: RealityRipple = {
 			id: realityRippleId++,
@@ -907,6 +959,7 @@ try: konami`,
 		resetIdle();
 		setupErrorObserver();
 		measureCharMetrics();
+		if (inMorningRitualWindow()) triggerMorningRitual();
 		document.addEventListener('visibilitychange', handleVisibilityChange);
 	});
 	onDestroy(() => {
@@ -1305,6 +1358,7 @@ try: konami`,
 		`v0.1.35 — paste cascade ☔ (paste text and watch your own glyphs rain through CRT space)`,
 		`v0.1.36 — wheel shear 🛞 (scroll to bend text-space sideways with drifting glyph streaks)`,
 		`v0.1.37 — copy ghosts 📋 (copy selected text and watch fragments of it escape upward)`,
+		`v0.1.38 — morning boot ritual 🌅 (between 08:00-08:25 Berlin, the CRT wakes with warm glow + floating dust motes)`,
 	];
 
 	const hackLines = [
@@ -1669,6 +1723,15 @@ try: konami`,
 	{#if idleDreaming}
 		<div class="idle-vignette"></div>
 	{/if}
+	{#if morningRitualActive}
+		<div class="morning-ritual-glow"></div>
+	{/if}
+	{#each morningMotes as mote (mote.id)}
+		<div
+			class="morning-mote"
+			style="left: {mote.x}%; top: {mote.y}%; width: {mote.size}px; height: {mote.size}px; --drift: {mote.drift}px; --dur: {mote.duration}ms; --delay: {mote.delay}ms;"
+		></div>
+	{/each}
 	{#if overclocked}
 		<div class="overclock-flash"></div>
 	{/if}
@@ -2643,6 +2706,57 @@ try: konami`,
 			opacity: 0;
 			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(calc(var(--scale) * 1.08)) rotate(4deg);
 			filter: blur(0.9px);
+		}
+	}
+
+
+
+	/* Morning boot ritual (08:00 Berlin) */
+	.morning-ritual-glow {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 84;
+		background:
+			radial-gradient(ellipse at 18% 8%, color-mix(in oklab, #ffcf7a 42%, transparent 58%) 0%, transparent 48%),
+			linear-gradient(180deg, color-mix(in oklab, #ff9f43 18%, transparent 82%) 0%, transparent 58%);
+		mix-blend-mode: screen;
+		animation: morning-ritual-fade 9.8s ease-out forwards;
+	}
+
+	.morning-mote {
+		position: fixed;
+		pointer-events: none;
+		z-index: 85;
+		border-radius: 999px;
+		background: color-mix(in oklab, #ffd28a 78%, white 22%);
+		box-shadow: 0 0 8px color-mix(in oklab, #ffd28a 62%, transparent 38%);
+		opacity: 0;
+		mix-blend-mode: screen;
+		animation: morning-mote-float var(--dur) linear forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes morning-ritual-fade {
+		0% { opacity: 0; }
+		12% { opacity: 0.9; }
+		100% { opacity: 0; }
+	}
+
+	@keyframes morning-mote-float {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translateX(0) translateY(0) scale(0.7);
+		}
+		15% {
+			opacity: 0.8;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translateX(var(--drift)) translateY(-52px) scale(1.05);
 		}
 	}
 
