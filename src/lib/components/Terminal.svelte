@@ -614,6 +614,34 @@ try: konami`,
 	let copyGhosts: CopyGhost[] = [];
 	let copyGhostId = 0;
 
+	// === CHARGE COIL (hold mouse, release to burst tiny runes) ===
+	interface ChargeRune {
+		id: number;
+		x: number;
+		y: number;
+		char: string;
+		dx: number;
+		dy: number;
+		spin: number;
+		duration: number;
+		delay: number;
+		size: number;
+	}
+	interface ChargeWave {
+		id: number;
+		x: number;
+		y: number;
+		size: number;
+	}
+	let chargeRunes: ChargeRune[] = [];
+	let chargeWaves: ChargeWave[] = [];
+	let chargeRuneId = 0;
+	let chargeWaveId = 0;
+	let charging = false;
+	let chargeReady = false;
+	let chargeX = 0;
+	let chargeY = 0;
+	let chargeTimer: ReturnType<typeof setTimeout>;
 
 	// === MORNING BOOT RITUAL (08:00 Berlin) ===
 	interface MorningMote {
@@ -954,6 +982,72 @@ try: konami`,
 		clearTimeout(stillMouseTimer);
 	}
 
+	function beginCharge(e: MouseEvent) {
+		handleActivity();
+		charging = true;
+		chargeReady = false;
+		chargeX = e.clientX;
+		chargeY = e.clientY;
+		clearTimeout(chargeTimer);
+		chargeTimer = setTimeout(() => {
+			chargeReady = true;
+		}, 520);
+	}
+
+	function moveCharge(e: MouseEvent) {
+		if (!charging) return;
+		chargeX = e.clientX;
+		chargeY = e.clientY;
+	}
+
+	function triggerChargeBurst(x: number, y: number) {
+		const chars = ['¤', '◦', '·', '+', '*', '~', '⟡', ':'];
+		const runeCount = 16 + Math.floor(Math.random() * 8);
+		const runes: ChargeRune[] = Array.from({ length: runeCount }, (_, i) => {
+			const angle = (Math.PI * 2 * i) / runeCount + (Math.random() - 0.5) * 0.35;
+			const speed = 42 + Math.random() * 115;
+			return {
+				id: chargeRuneId++,
+				x,
+				y,
+				char: chars[Math.floor(Math.random() * chars.length)],
+				dx: Math.cos(angle) * speed,
+				dy: Math.sin(angle) * speed,
+				spin: (Math.random() - 0.5) * 200,
+				duration: 420 + Math.random() * 380,
+				delay: Math.random() * 60,
+				size: 0.74 + Math.random() * 0.5,
+			};
+		});
+		chargeRunes = [...chargeRunes.slice(-80), ...runes];
+		runes.forEach((rune) => {
+			setTimeout(() => {
+				chargeRunes = chargeRunes.filter((r) => r.id !== rune.id);
+			}, rune.duration + rune.delay + 120);
+		});
+
+		const wave: ChargeWave = {
+			id: chargeWaveId++,
+			x,
+			y,
+			size: 44 + Math.random() * 24,
+		};
+		chargeWaves = [...chargeWaves.slice(-8), wave];
+		setTimeout(() => {
+			chargeWaves = chargeWaves.filter((w) => w.id !== wave.id);
+		}, 560);
+	}
+
+	function endCharge(e: MouseEvent) {
+		if (!charging) return;
+		handleActivity();
+		clearTimeout(chargeTimer);
+		charging = false;
+		if (!chargeReady) return;
+		triggerChargeBurst(e.clientX, e.clientY);
+		chargeReady = false;
+	}
+
 	import { onMount, onDestroy } from 'svelte';
 	onMount(() => {
 		resetIdle();
@@ -969,6 +1063,7 @@ try: konami`,
 		clearTimeout(capsRageTimeout);
 		clearTimeout(voidPulseTimeout);
 		clearTimeout(stillMouseTimer);
+		clearTimeout(chargeTimer);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 	});
 
@@ -1359,6 +1454,7 @@ try: konami`,
 		`v0.1.36 — wheel shear 🛞 (scroll to bend text-space sideways with drifting glyph streaks)`,
 		`v0.1.37 — copy ghosts 📋 (copy selected text and watch fragments of it escape upward)`,
 		`v0.1.38 — morning boot ritual 🌅 (between 08:00-08:25 Berlin, the CRT wakes with warm glow + floating dust motes)`,
+		`v0.1.39 — charge coil ⚛️ (hold mouse, then release to burst tiny runes and a phosphor ring)`,
 	];
 
 	const hackLines = [
@@ -1696,7 +1792,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={handleKeyDown} on:paste={handlePaste} on:copy={handleCopy} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:touchstart={handleActivity} on:mousemove={handleMouseMove} on:mouseleave={handleMouseLeave} />
+<svelte:window on:keydown={handleKeyDown} on:paste={handlePaste} on:copy={handleCopy} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:mousedown={beginCharge} on:mouseup={endCharge} on:touchstart={handleActivity} on:mousemove={(e) => { handleMouseMove(e); moveCharge(e); }} on:mouseleave={handleMouseLeave} />
 
 <div class="terminal-wrapper" class:channel-switch={channelSwitching} class:glitch-active={glitchActive} class:overclocked={overclocked} style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt}; --err: {activeTheme.error};">
 	<div class="scanlines"></div>
@@ -1844,6 +1940,20 @@ try: konami`,
 			style="left: {ghost.x}px; top: {ghost.y}px; --dx: {ghost.dx}px; --dy: {ghost.dy}px; --dur: {ghost.duration}ms; --delay: {ghost.delay}ms; --scale: {ghost.scale};"
 		>
 			{ghost.text}
+		</div>
+	{/each}
+	{#if charging}
+		<div class="charge-core" class:ready={chargeReady} style="left: {chargeX}px; top: {chargeY}px;"></div>
+	{/if}
+	{#each chargeWaves as wave (wave.id)}
+		<div class="charge-wave" style="left: {wave.x}px; top: {wave.y}px; --size: {wave.size}px;"></div>
+	{/each}
+	{#each chargeRunes as rune (rune.id)}
+		<div
+			class="charge-rune"
+			style="left: {rune.x}px; top: {rune.y}px; --dx: {rune.dx}px; --dy: {rune.dy}px; --spin: {rune.spin}deg; --dur: {rune.duration}ms; --delay: {rune.delay}ms; --size: {rune.size}rem;"
+		>
+			{rune.char}
 		</div>
 	{/each}
 </div>
@@ -2709,7 +2819,94 @@ try: konami`,
 		}
 	}
 
+	/* Charge coil (hold click, release when primed) */
+	.charge-core {
+		position: fixed;
+		pointer-events: none;
+		z-index: 95;
+		width: 18px;
+		height: 18px;
+		border-radius: 999px;
+		transform: translate(-50%, -50%) scale(0.78);
+		border: 1px solid color-mix(in oklab, var(--fg) 78%, white 22%);
+		background: radial-gradient(circle at 50% 50%, color-mix(in oklab, var(--fg) 40%, white 60%) 0%, color-mix(in oklab, var(--fg) 22%, transparent 78%) 42%, transparent 70%);
+		box-shadow: 0 0 12px var(--fg), inset 0 0 8px color-mix(in oklab, var(--fg) 65%, white 35%);
+		mix-blend-mode: screen;
+		animation: charge-core-spin 0.52s linear infinite;
+	}
 
+	.charge-core.ready {
+		border-color: color-mix(in oklab, var(--fg) 92%, white 8%);
+		box-shadow: 0 0 16px var(--fg), 0 0 28px color-mix(in oklab, var(--fg) 68%, white 32%), inset 0 0 10px color-mix(in oklab, var(--fg) 72%, white 28%);
+		animation: charge-core-spin 0.32s linear infinite, charge-core-pulse 0.44s ease-in-out infinite;
+	}
+
+	.charge-wave {
+		position: fixed;
+		pointer-events: none;
+		z-index: 94;
+		width: var(--size);
+		height: var(--size);
+		border-radius: 50%;
+		border: 1.5px solid color-mix(in oklab, var(--fg) 86%, white 14%);
+		box-shadow: 0 0 10px var(--fg), inset 0 0 8px color-mix(in oklab, var(--fg) 58%, transparent 42%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%) scale(0.24);
+		animation: charge-wave-pop 0.56s cubic-bezier(0.18, 0.76, 0.2, 1) forwards;
+	}
+
+	.charge-rune {
+		position: fixed;
+		pointer-events: none;
+		z-index: 95;
+		color: color-mix(in oklab, var(--fg) 90%, white 10%);
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: var(--size);
+		text-shadow: 0 0 6px var(--fg), 0 0 14px color-mix(in oklab, var(--fg) 68%, white 32%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%);
+		opacity: 0;
+		animation: charge-rune-burst var(--dur) cubic-bezier(0.22, 0.78, 0.2, 1) forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes charge-core-spin {
+		0% { transform: translate(-50%, -50%) scale(0.78) rotate(0deg); opacity: 0.72; }
+		100% { transform: translate(-50%, -50%) scale(0.98) rotate(360deg); opacity: 0.98; }
+	}
+
+	@keyframes charge-core-pulse {
+		0%, 100% { filter: brightness(1); }
+		50% { filter: brightness(1.28); }
+	}
+
+	@keyframes charge-wave-pop {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.24);
+		}
+		20% {
+			opacity: 0.88;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(3.7);
+		}
+	}
+
+	@keyframes charge-rune-burst {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(0.7) rotate(0deg);
+		}
+		16% {
+			opacity: 0.95;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.14) rotate(var(--spin));
+		}
+	}
 
 	/* Morning boot ritual (08:00 Berlin) */
 	.morning-ritual-glow {
