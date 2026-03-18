@@ -450,6 +450,23 @@ try: konami`,
 	let voidPulse = false;
 	let voidPulseTimeout: ReturnType<typeof setTimeout>;
 
+	// === SPACE WARP (hold space, release for horizontal CRT star-streaks) ===
+	interface SpaceWarpStreak {
+		id: number;
+		x: number;
+		y: number;
+		width: number;
+		dx: number;
+		duration: number;
+		delay: number;
+	}
+	let spaceWarpStreaks: SpaceWarpStreak[] = [];
+	let spaceWarpStreakId = 0;
+	let spaceDownAt = 0;
+	let spaceArmed = false;
+	let spaceWarpFlash = false;
+	let spaceWarpFlashTimeout: ReturnType<typeof setTimeout>;
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -1119,6 +1136,7 @@ try: konami`,
 		clearTimeout(stillMouseTimer);
 		clearTimeout(chargeTimer);
 		clearTimeout(resizeBadgeTimeout);
+		clearTimeout(spaceWarpFlashTimeout);
 		document.removeEventListener('visibilitychange', handleVisibilityChange);
 		window.removeEventListener('resize', handleResize);
 	});
@@ -1391,6 +1409,55 @@ try: konami`,
 		}
 	}
 
+	function triggerSpaceWarpBurst() {
+		const x = gridCursorVisible && charWidth > 0 ? gridCursorX + charWidth * 0.5 : window.innerWidth * 0.5;
+		const y = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+		const count = 14 + Math.floor(Math.random() * 8);
+		const streaks: SpaceWarpStreak[] = Array.from({ length: count }, () => ({
+			id: spaceWarpStreakId++,
+			x,
+			y: y + (Math.random() - 0.5) * 44,
+			width: 34 + Math.random() * 120,
+			dx: (Math.random() - 0.5) * 90,
+			duration: 360 + Math.random() * 300,
+			delay: Math.random() * 100,
+		}));
+
+		spaceWarpStreaks = [...spaceWarpStreaks.slice(-80), ...streaks];
+		streaks.forEach((streak) => {
+			setTimeout(() => {
+				spaceWarpStreaks = spaceWarpStreaks.filter((s) => s.id !== streak.id);
+			}, streak.duration + streak.delay + 120);
+		});
+
+		spaceWarpFlash = true;
+		clearTimeout(spaceWarpFlashTimeout);
+		spaceWarpFlashTimeout = setTimeout(() => {
+			spaceWarpFlash = false;
+		}, 260);
+	}
+
+	function handleSpaceDown(e: KeyboardEvent) {
+		if (e.key !== ' ' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+		if (spaceDownAt) return;
+		spaceDownAt = performance.now();
+		spaceArmed = true;
+	}
+
+	function handleKeyUp(e: KeyboardEvent) {
+		if (e.key !== ' ') return;
+		handleActivity();
+		if (!spaceArmed || !spaceDownAt) {
+			spaceDownAt = 0;
+			spaceArmed = false;
+			return;
+		}
+		const heldMs = performance.now() - spaceDownAt;
+		spaceDownAt = 0;
+		spaceArmed = false;
+		if (heldMs >= 380) triggerSpaceWarpBurst();
+	}
+
 	function handleKonami(e: KeyboardEvent) {
 		konamiBuffer = [...konamiBuffer, e.key].slice(-10);
 		if (konamiBuffer.join(',') === konamiCode.join(',') && !konamiActivated) {
@@ -1401,6 +1468,7 @@ try: konami`,
 	function handleKeyDown(e: KeyboardEvent) {
 		handleKonami(e);
 		handleActivity();
+		handleSpaceDown(e);
 		spawnTypeBurst(e);
 		trackRapidTyping(e);
 		spawnEnterSweep(e);
@@ -1512,6 +1580,7 @@ try: konami`,
 		`v0.1.38 — morning boot ritual 🌅 (between 08:00-08:25 Berlin, the CRT wakes with warm glow + floating dust motes)`,
 		`v0.1.39 — charge coil ⚛️ (hold mouse, then release to burst tiny runes and a phosphor ring)`,
 		`v0.1.40 — resize fracture 📐 (resizing the window tears thin CRT bands + a SYNC resolution blink)`,
+		`v0.1.50 — space warp ␠ (hold SPACE and release to smear horizontal phosphor star-streaks)`,
 	];
 
 	const hackLines = [
@@ -1849,7 +1918,7 @@ try: konami`,
 	];
 </script>
 
-<svelte:window on:keydown={handleKeyDown} on:paste={handlePaste} on:copy={handleCopy} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:mousedown={beginCharge} on:mouseup={endCharge} on:touchstart={handleActivity} on:mousemove={(e) => { handleMouseMove(e); moveCharge(e); }} on:mouseleave={handleMouseLeave} />
+<svelte:window on:keydown={handleKeyDown} on:keyup={handleKeyUp} on:paste={handlePaste} on:copy={handleCopy} on:wheel={handleWheel} on:click={(e) => { handleActivity(); spawnSparks(e); }} on:dblclick={(e) => { handleActivity(); spawnRealityRipple(e); }} on:mousedown={beginCharge} on:mouseup={endCharge} on:touchstart={handleActivity} on:mousemove={(e) => { handleMouseMove(e); moveCharge(e); }} on:mouseleave={handleMouseLeave} />
 
 <div class="terminal-wrapper" class:channel-switch={channelSwitching} class:glitch-active={glitchActive} class:overclocked={overclocked} style="--bg: {activeTheme.background}; --fg: {activeTheme.prompt}; --err: {activeTheme.error};">
 	<div class="scanlines"></div>
@@ -1888,6 +1957,15 @@ try: konami`,
 	{#if overclocked}
 		<div class="overclock-flash"></div>
 	{/if}
+	{#if spaceWarpFlash}
+		<div class="space-warp-flash"></div>
+	{/if}
+	{#each spaceWarpStreaks as streak (streak.id)}
+		<div
+			class="space-warp-streak"
+			style="left: {streak.x}px; top: {streak.y}px; width: {streak.width}px; --dx: {streak.dx}px; --dur: {streak.duration}ms; --delay: {streak.delay}ms;"
+		></div>
+	{/each}
 	{#each phosphorDots as dot (dot.id)}
 		<div class="phosphor-dot" style="left: {dot.x}px; top: {dot.y}px;"></div>
 	{/each}
@@ -2076,6 +2154,64 @@ try: konami`,
 		0% { opacity: 0; }
 		12% { opacity: 1; }
 		100% { opacity: 0; }
+	}
+
+	/* Space warp (hold SPACE, release to smear phosphor horizontally) */
+	.space-warp-flash {
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		pointer-events: none;
+		z-index: 252;
+		background:
+			radial-gradient(circle at 50% 55%, color-mix(in oklab, var(--fg) 20%, transparent 80%) 0%, transparent 42%),
+			linear-gradient(90deg, transparent 0%, color-mix(in oklab, var(--fg) 18%, white 82%) 50%, transparent 100%);
+		mix-blend-mode: screen;
+		animation: space-warp-flash 0.26s ease-out forwards;
+	}
+
+	.space-warp-streak {
+		position: fixed;
+		height: 1.5px;
+		pointer-events: none;
+		z-index: 251;
+		border-radius: 999px;
+		background: linear-gradient(90deg,
+			transparent 0%,
+			color-mix(in oklab, var(--fg) 26%, transparent 74%) 10%,
+			color-mix(in oklab, var(--fg) 94%, white 6%) 50%,
+			color-mix(in oklab, var(--fg) 26%, transparent 74%) 90%,
+			transparent 100%);
+		box-shadow: 0 0 8px color-mix(in oklab, var(--fg) 76%, white 24%);
+		mix-blend-mode: screen;
+		opacity: 0;
+		transform: translate(-50%, -50%) scaleX(0.2);
+		animation: space-warp-streak var(--dur) cubic-bezier(0.16, 0.78, 0.2, 1) forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes space-warp-flash {
+		0% { opacity: 0; }
+		22% { opacity: 1; }
+		100% { opacity: 0; }
+	}
+
+	@keyframes space-warp-streak {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) translateX(0) scaleX(0.2);
+			filter: blur(0.1px);
+		}
+		22% {
+			opacity: 0.96;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(calc(-50% + var(--dx)), -50%) scaleX(1.75);
+			filter: blur(0.8px);
+		}
 	}
 
 	/* Grid-snapping terminal cursor */
