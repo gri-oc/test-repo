@@ -467,6 +467,24 @@ try: konami`,
 	let spaceWarpFlash = false;
 	let spaceWarpFlashTimeout: ReturnType<typeof setTimeout>;
 
+	// === 404 PHANTOM (type "404" quickly to summon not-found ghosts) ===
+	interface NotFoundBurst {
+		id: number;
+		x: number;
+		y: number;
+		dx: number;
+		dy: number;
+		rot: number;
+		duration: number;
+		delay: number;
+		scale: number;
+		text: string;
+	}
+	let notFoundBursts: NotFoundBurst[] = [];
+	let notFoundBurstId = 0;
+	let notFoundBuffer = '';
+	let notFoundLastKeyAt = 0;
+
 	function spawnSparks(e: MouseEvent) {
 		const count = 6 + Math.floor(Math.random() * 6);
 		const newSparks: Spark[] = [];
@@ -1327,6 +1345,44 @@ try: konami`,
 		}
 	}
 
+	function triggerNotFoundPhantom() {
+		const originX = gridCursorVisible && charWidth > 0 ? gridCursorX + charWidth * 0.5 : window.innerWidth * 0.5;
+		const originY = gridCursorVisible && lineHeight > 0 ? gridCursorY + lineHeight * 0.6 : window.innerHeight * 0.55;
+		const glyphs = ['404', '4O4', '4Ø4', '4▫4'];
+		const bursts: NotFoundBurst[] = Array.from({ length: 8 }, (_, i) => ({
+			id: notFoundBurstId++,
+			x: originX + (Math.random() - 0.5) * 120,
+			y: originY + (Math.random() - 0.5) * 42,
+			dx: (Math.random() - 0.5) * 180,
+			dy: -36 - Math.random() * 90,
+			rot: (Math.random() - 0.5) * 90,
+			duration: 520 + Math.random() * 340,
+			delay: i * 20 + Math.random() * 70,
+			scale: 0.76 + Math.random() * 0.5,
+			text: glyphs[Math.floor(Math.random() * glyphs.length)],
+		}));
+
+		notFoundBursts = [...notFoundBursts.slice(-32), ...bursts];
+		bursts.forEach((burst) => {
+			setTimeout(() => {
+				notFoundBursts = notFoundBursts.filter((b) => b.id !== burst.id);
+			}, burst.duration + burst.delay + 120);
+		});
+	}
+
+	function trackNotFoundCode(e: KeyboardEvent) {
+		if (e.ctrlKey || e.metaKey || e.altKey) return;
+		if (e.key.length !== 1) return;
+		const now = performance.now();
+		if (now - notFoundLastKeyAt > 1000) notFoundBuffer = '';
+		notFoundLastKeyAt = now;
+		notFoundBuffer = (notFoundBuffer + e.key).slice(-3);
+		if (notFoundBuffer === '404') {
+			notFoundBuffer = '';
+			triggerNotFoundPhantom();
+		}
+	}
+
 	function triggerCapsRage(originX: number, originY: number) {
 		capsRage = true;
 		clearTimeout(capsRageTimeout);
@@ -1475,6 +1531,7 @@ try: konami`,
 		trackSecretFrog(e);
 		trackEllipsisPing(e);
 		trackPanicStorm(e);
+		trackNotFoundCode(e);
 		trackCapsRage(e);
 		trackBackspaceVoid(e);
 	}
@@ -1581,6 +1638,7 @@ try: konami`,
 		`v0.1.39 — charge coil ⚛️ (hold mouse, then release to burst tiny runes and a phosphor ring)`,
 		`v0.1.40 — resize fracture 📐 (resizing the window tears thin CRT bands + a SYNC resolution blink)`,
 		`v0.1.50 — space warp ␠ (hold SPACE and release to smear horizontal phosphor star-streaks)`,
+		`v0.1.51 — 404 phantom 🚫 (type "404" quickly to spawn drifting not-found glyph ghosts near the cursor)`,
 	];
 
 	const hackLines = [
@@ -2067,6 +2125,14 @@ try: konami`,
 			style="left: {burst.x}px; top: {burst.y}px; --dx: {burst.dx}px; --dy: {burst.dy}px; --rot: {burst.rotate}deg;"
 		>
 			{burst.char}
+		</div>
+	{/each}
+	{#each notFoundBursts as burst (burst.id)}
+		<div
+			class="not-found-burst"
+			style="left: {burst.x}px; top: {burst.y}px; --dx: {burst.dx}px; --dy: {burst.dy}px; --rot: {burst.rot}deg; --dur: {burst.duration}ms; --delay: {burst.delay}ms; --scale: {burst.scale};"
+		>
+			{burst.text}
 		</div>
 	{/each}
 	{#each copyGhosts as ghost (ghost.id)}
@@ -2986,6 +3052,39 @@ try: konami`,
 		100% {
 			opacity: 0;
 			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1.15) rotate(var(--rot));
+		}
+	}
+
+	/* 404 phantom (type "404" quickly) */
+	.not-found-burst {
+		position: fixed;
+		pointer-events: none;
+		z-index: 94;
+		font-family: 'IBM Plex Mono', monospace;
+		font-size: 0.9rem;
+		letter-spacing: 0.08em;
+		color: color-mix(in oklab, var(--err) 68%, var(--fg) 32%);
+		text-shadow: 0 0 8px color-mix(in oklab, var(--err) 72%, var(--fg) 28%), 0 0 16px color-mix(in oklab, var(--fg) 64%, white 36%);
+		mix-blend-mode: screen;
+		transform: translate(-50%, -50%);
+		opacity: 0;
+		animation: not-found-burst-float var(--dur) cubic-bezier(0.2, 0.76, 0.2, 1) forwards;
+		animation-delay: var(--delay);
+	}
+
+	@keyframes not-found-burst-float {
+		0% {
+			opacity: 0;
+			transform: translate(-50%, -50%) scale(calc(var(--scale) * 0.74)) rotate(0deg);
+			filter: blur(0px);
+		}
+		18% {
+			opacity: 0.98;
+		}
+		100% {
+			opacity: 0;
+			transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(calc(var(--scale) * 1.08)) rotate(var(--rot));
+			filter: blur(0.9px);
 		}
 	}
 
